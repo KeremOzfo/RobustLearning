@@ -26,10 +26,11 @@ def epoch(loader, model, opt=None, device=None):
 
     for img, label in loader:
         img, label = img.to(device), label.to(device)
-        img = gaussian_noise(img)
-        predict1, predict2 = model(img)
-        loss = nn.CrossEntropyLoss()(predict1, label)
-        ##need another loss
+        img_aug = gaussian_noise(img) # augmented image batch
+        img_cum=torch.cat((img,img_aug),0) # combine the original and augmented images
+        label_cum=torch.cat((label,label),0) # combine labels
+        predict1, predict2 = model(img_cum)
+        loss = nn.CrossEntropyLoss()(predict1, label_cum) + 0.001*similarity_loss(predict2,128): # Two loss term; first) cross-entropy second) cosine similarity
         if opt:
             opt.zero_grad()
             loss.backward()
