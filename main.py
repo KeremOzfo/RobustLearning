@@ -26,22 +26,24 @@ def epoch(loader, model, opt=None, device=None):
 
     for img, label in loader:
         img, label = img.to(device), label.to(device)
-        img_aug = gaussian_noise(img) # augmented image batch
+        img_aug = gaussian_noise(img,std=0.01) # augmented image batch
         img_cum=torch.cat((img,img_aug),0) # combine the original and augmented images
-        label_cum=torch.cat((label,label),0) # combine labels
+        label_cum = torch.cat((label,label),0) # combine labels
         predict1, predict2 = model(img_cum)
-        loss = nn.CrossEntropyLoss()(predict1, label_cum) + 0.001*similarity_loss(predict2,128): # Two loss term; first) cross-entropy second) cosine similarity
+        loss = nn.CrossEntropyLoss()(predict1, label_cum)
+        loss += 0.001 * similarity_loss(predict2,img.shape[0]) # Two loss term; first) cross-entropy second) cosine similarity
         if opt:
             opt.zero_grad()
             loss.backward()
             opt.step()
 
-        total_err += (predict1.max(dim=1)[1] != label).sum().item()
+        total_err += (predict1.max(dim=1)[1] != label_cum).sum().item()
+        #print((predict1.max(dim=1)[1] == label_cum).sum().item())
         total_loss += loss.item() * img.shape[0]
 
-    return total_err / len(loader.dataset), total_loss / len(loader.dataset)
+    return total_err / (len(loader.dataset)*2), total_loss / len(loader.dataset)
 
-device =torch.device(f"cuda:{1}" if torch.cuda.is_available() else "cpu")
+device =torch.device(f"cuda:{0}" if torch.cuda.is_available() else "cpu")
 
 cifar_train, cifar_test = get_cifar10()
 train_loader = DataLoader(cifar_train, batch_size = 128, shuffle=True)
@@ -62,5 +64,5 @@ for ep in range(300):
     test_err, test_loss = epoch(test_loader, model, device=device)
     acc = (1-test_err)*100
     accs.append(acc)
-    print(acc)
+    print('acc: ',acc)
     look_norms(model)
