@@ -95,9 +95,9 @@ class ResNet(nn.Module):
         out = self.layer4(out)
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
-        out = self.norm(out) # this part is l1 normalization in order map values to interval [0,1] the scale
+        out = self.norm(out) # this part is l1 normalization in order map values to interval [0,1] then scale according to a trainable parameter
         out_c = self.linear(out) # this is the main output for cross-entropy loss
-        return out_c, out
+        return out_c, out # we have two output for each loss function
 
 class ResNet_2(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
